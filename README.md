@@ -45,8 +45,48 @@ sentiment-analysis/
 │   └── model_sentiment/    # Saved model directory
 ├── tokenizer.pkl           # Trained tokenizer
 ├── label_encoder.pkl       # Label encoder
+├── requirements.txt        # Project dependencies
 └── README.md              # Project documentation
 ```
+
+## 📊 Dataset
+
+### Twitter Sentiment Analysis Dataset
+
+This project uses the **Twitter Entity Sentiment Analysis Dataset** which contains entity-level sentiment analysis for tweets.
+
+**Dataset Source**: [Twitter Entity Sentiment Analysis - Kaggle](https://www.kaggle.com/datasets/jp797498e/twitter-entity-sentiment-analysis)
+
+### Dataset Description
+
+- **Size**: ~74,000 labeled tweets
+- **Training Data**: ~70,000 messages (`twitter_training.csv`)
+- **Validation Data**: ~1,000 messages (`twitter_validation.csv`)
+- **Languages**: Multi-lingual tweets (primarily English)
+
+### Data Format
+
+| Column | Description |
+|--------|-------------|
+| `ID` | Unique identifier for each tweet |
+| `Entity` | The entity/company being referenced |
+| `Labels` | Sentiment label (4 categories) |
+| `Text` | The actual tweet content |
+
+### Sentiment Categories
+
+- **Irrelevant** (0): Tweet doesn't express sentiment towards the entity
+- **Negative** (1): Negative sentiment towards the entity
+- **Neutral** (2): Neutral sentiment towards the entity  
+- **Positive** (3): Positive sentiment towards the entity
+
+### Data Download
+
+1. Visit the [Kaggle dataset page](https://www.kaggle.com/datasets/jp797498e/twitter-entity-sentiment-analysis)
+2. Download `twitter_training.csv` and `twitter_validation.csv`
+3. Place both files in your project root directory
+
+**Note**: You'll need a Kaggle account to download the dataset. The dataset is free and publicly available.
 
 ## 🚀 Getting Started
 
@@ -59,16 +99,17 @@ pip install -r requirements.txt
 
 ### Required Dependencies
 
-```python
-numpy
-pandas
-matplotlib
-seaborn
-nltk
-scikit-learn
+Create a `requirements.txt` file with the following dependencies:
+
+```txt
+numpy>=1.19.0
+pandas>=1.3.0
+matplotlib>=3.3.0
+seaborn>=0.11.0
+nltk>=3.6.0
+scikit-learn>=1.0.0
 tensorflow>=2.8.0
-flask
-pickle
+flask>=2.0.0
 ```
 
 ### Installation
@@ -92,26 +133,12 @@ pickle
    nltk.download('wordnet')
    ```
 
-4. **Prepare your data**
-   - Place `twitter_training.csv` and `twitter_validation.csv` in the project directory
+4. **Download and prepare your data**
+   - Visit [Kaggle dataset page](https://www.kaggle.com/datasets/jp797498e/twitter-entity-sentiment-analysis)
+   - Download `twitter_training.csv` and `twitter_validation.csv`
+   - Place both files in your project root directory
    - Ensure data format: `ID`, `Entity`, `Labels`, `Text` columns
 
-## 🎯 Usage
-
-### Training the Model
-
-Run the training script to train your custom Transformer model:
-
-```bash
-python main_training.py
-```
-
-The script will:
-- Load and preprocess the data
-- Train the Transformer model
-- Save the trained model and preprocessors
-- Generate training visualizations
-- Evaluate model performance
 
 ### Text Preprocessing Pipeline
 
@@ -121,6 +148,7 @@ The preprocessing includes:
 - Removing punctuation and digits
 - Filtering stopwords (preserving negation words)
 - Tokenization and lemmatization
+- Sequence padding and truncation
 
 ### Running the Web Application
 
@@ -140,10 +168,11 @@ Visit `http://localhost:5000` to access the web interface where you can:
 ### Training Configuration
 - **Batch Size**: 128
 - **Learning Rate**: 2e-4
-- **Epochs**: 100 (with early stopping)
+- **Epochs**: 100 (with early stopping, patience=11)
 - **Optimizer**: Adam
 - **Loss Function**: Categorical Crossentropy
 - **Metrics**: Accuracy
+- **Class Weighting**: Balanced weights for handling imbalanced data
 
 ### Class Labels
 - **0**: Irrelevant
@@ -158,17 +187,18 @@ Visit `http://localhost:5000` to access the web interface where you can:
 The model implements a complete Transformer encoder with:
 
 - **Multi-Head Attention**: Captures different types of relationships in text
-- **Positional Encoding**: Adds position information to embeddings
-- **Layer Normalization**: Stabilizes training
+- **Positional Encoding**: Adds position information to embeddings using sin/cos functions
+- **Layer Normalization**: Stabilizes training with epsilon=1e-6
 - **Residual Connections**: Prevents vanishing gradients
-- **Dropout**: Prevents overfitting
+- **Dropout**: Prevents overfitting (rate=0.1)
+- **Feed-Forward Networks**: Two linear transformations with ReLU activation
 
 ### Text Processing Features
 
 - **Negation Preservation**: Maintains important negation words during stopword removal
 - **Balanced Class Weights**: Automatically calculates weights for imbalanced classes
-- **Sequence Padding**: Handles variable-length inputs
-- **OOV Token Handling**: Manages out-of-vocabulary words
+- **Sequence Padding**: Handles variable-length inputs (max_len=25)
+- **OOV Token Handling**: Manages out-of-vocabulary words with `<OOV>` token
 
 ## 🎨 Web Interface
 
@@ -177,18 +207,49 @@ The Flask application provides:
 - Real-time sentiment prediction
 - Confidence scores for predictions
 - Easy-to-use text input interface
+- Error handling for empty inputs
 
 ## 📈 Visualization
 
 The training script generates:
 - Training and validation loss curves
 - Training and validation accuracy curves
-- Confusion matrix heatmap
+- Confusion matrix heatmap with class labels
 - Text length distribution histogram
+- Classification report with precision, recall, and F1-score
 
 ## 🔧 Customization
 
+### Modifying Model Architecture
+
+To change the model configuration, edit these parameters in `main_training.py`:
+
+```python
+# Model hyperparameters
+vocab_size = len(tokenizer.word_index) + 1
+max_len = 25              # Maximum sequence length
+num_layers = 6            # Number of transformer layers
+embed_dim = 128           # Embedding dimension
+num_heads = 8             # Number of attention heads
+ff_dim = 256             # Feed-forward layer dimension
+num_classes = 4          # Number of output classes
+dropout_rate = 0.1       # Dropout rate
 ```
+
+### Adding New Classes
+
+1. Update the number of classes in the model initialization
+2. Modify the label encoder mapping
+3. Update the labels list in evaluation code
+4. Adjust the final Dense layer output dimension
+
+### Preprocessing Customization
+
+Modify the `Preprocessing_text()` and `tokenize_lemmatize()` functions to:
+- Add custom text cleaning rules
+- Include additional stopwords or negation words
+- Change tokenization strategy
+- Adjust sequence length based on your data
 
 ## 🚀 Deployment
 
@@ -196,27 +257,42 @@ The training script generates:
 The Flask app runs locally by default. For production deployment:
 
 1. Set `debug=False` in `app.py`
-2. Use a production WSGI server like Gunicorn
-3. Configure environment variables for paths
+2. Use a production WSGI server like Gunicorn:
+   ```bash
+   pip install gunicorn
+   gunicorn -w 4 -b 0.0.0.0:5000 app:app
+   ```
+3. Configure environment variables for model and tokenizer paths
 
-### Model Export
+### Model Export Options
 The trained model is saved in TensorFlow format and can be:
-- Loaded for inference
-- Converted to TensorFlow Lite for mobile deployment
-- Exported to ONNX format for cross-platform deployment
+- **TensorFlow Serving**: For scalable model serving
+- **TensorFlow Lite**: For mobile and edge deployment
+- **ONNX Format**: For cross-platform deployment
+- **TensorFlow.js**: For browser-based inference
+
+## 🧪 Testing
+
+To test the model performance:
+
+```python
+# Load the model and test
+model = tf.keras.models.load_model("model_sentiment")
+test_loss, test_accuracy = model.evaluate(x_test_pad, y_test_categorical)
+print(f"Test Accuracy: {test_accuracy:.4f}")
+```
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
 3. Make your changes
 4. Add tests if applicable
-5. Submit a pull request
+5. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+6. Push to the branch (`git push origin feature/AmazingFeature`)
+7. Submit a pull request
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-
-
-**Note**: Make sure to have sufficient computational resources for training. The model uses attention mechanisms which can be memory-intensive for longer sequences.
